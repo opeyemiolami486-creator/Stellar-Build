@@ -85,7 +85,7 @@ export default function ConnectPage() {
             <div>
               <p className="text-[#00C896] text-sm font-semibold">Wallet session active</p>
               <p className="text-slate-400 text-xs font-mono">
-                {connectedAddress.slice(0, 10)}…{connectedAddress.slice(-8)}
+                {(connectedAddress ?? "").slice(0, 10)}…{(connectedAddress ?? "").slice(-8)}
               </p>
             </div>
           </div>
@@ -186,11 +186,11 @@ export default function ConnectPage() {
           <div className="space-y-2 terminal text-slate-300 text-xs">
             <div className="flex justify-between">
               <span className="text-slate-500">Address</span>
-              <span>{walletInfo.address.slice(0, 8)}…{walletInfo.address.slice(-6)}</span>
+              <span>{(walletInfo.address ?? "").slice(0, 8)}…{(walletInfo.address ?? "").slice(-6)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">XLM Balance</span>
-              <span className="text-[#00D2FF]">{parseFloat(walletInfo.xlmBalance).toFixed(2)} XLM</span>
+              <span className="text-[#00D2FF]">{parseFloat(walletInfo.xlmBalance || "0").toFixed(2)} XLM</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">USDC Balance</span>

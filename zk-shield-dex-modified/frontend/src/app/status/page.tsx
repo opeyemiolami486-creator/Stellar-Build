@@ -117,17 +117,17 @@ export default function StatusPage() {
         </h2>
         <HashDisplay label="Trade Hash (opaque)" hash={result.tradeHash} />
         <HashDisplay label="Soroban Verification TX" hash={result.verificationTxHash} />
-        <HashDisplay label="Stellar DEX Execution TX" hash={result.executionTxHash} />
+        <HashDisplay label="Stellar DEX Execution TX" hash={result?.executionTxHash ?? ""} />
         <div className="flex items-center justify-between py-2">
           <span className="text-slate-500 text-xs">Ledger</span>
           <span className="terminal text-slate-300 text-xs">
-            {result.ledger.toLocaleString()}
+            {(result?.ledger ?? 0).toLocaleString()}
           </span>
         </div>
         <div className="flex items-center justify-between py-2">
           <span className="text-slate-500 text-xs">Timestamp</span>
           <span className="terminal text-slate-300 text-xs">
-            {new Date(result.timestamp).toLocaleTimeString()}
+            {result?.timestamp ? new Date(result.timestamp).toLocaleTimeString() : "—"}
           </span>
         </div>
       </div>
@@ -189,9 +189,9 @@ export default function StatusPage() {
       <div className="card-glow rounded-2xl p-4 mb-6">
         <p className="text-xs text-slate-500 mb-2">Verify proof on Stellar Expert:</p>
         <div className="space-y-1.5">
-          {result.verificationTxHash && (
+          {result?.verificationTxHash && (
             <a
-              href={`${explorerBase}${result.verificationTxHash.replace("0x", "")}`}
+              href={`${explorerBase}${(result.verificationTxHash ?? "").replace("0x", "")}`}
               target="_blank"
               rel="noopener noreferrer"
               className="block text-xs text-[#6B4EFF] hover:underline terminal"
@@ -199,9 +199,9 @@ export default function StatusPage() {
               → Soroban Verification TX ↗
             </a>
           )}
-          {result.executionTxHash && (
+          {result?.executionTxHash && (
             <a
-              href={`${explorerBase}${result.executionTxHash.replace("0x", "")}`}
+              href={`${explorerBase}${(result.executionTxHash ?? "").replace("0x", "")}`}
               target="_blank"
               rel="noopener noreferrer"
               className="block text-xs text-[#6B4EFF] hover:underline terminal"

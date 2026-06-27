@@ -335,13 +335,13 @@ export default function TradePage() {
             <div className="mt-4 pt-4 border-t border-slate-800 terminal text-xs">
               <p className="text-slate-500 mb-1">Public signals (all that's revealed on-chain):</p>
               <p className="text-slate-400 truncate">
-                nullifier: <span className="text-[#6B4EFF]">{proofData.publicInputs.nullifier.slice(0, 20)}...</span>
+                nullifier: <span className="text-[#6B4EFF]">{proofData.publicInputs?.nullifier?.slice(0, 20) ?? "N/A"}...</span>
               </p>
               <p className="text-slate-400 truncate">
-                commitment: <span className="text-[#6B4EFF]">{proofData.publicInputs.commitment.slice(0, 20)}...</span>
+                commitment: <span className="text-[#6B4EFF]">{proofData.publicInputs?.commitment?.slice(0, 20) ?? "N/A"}...</span>
               </p>
               <p className="text-slate-400">
-                proof time: <span className="text-[#00C896]">{proofData.generationTimeMs}ms</span>
+                proof time: <span className="text-[#00C896]">{proofData.generationTimeMs ?? 0}ms</span>
               </p>
             </div>
           )}

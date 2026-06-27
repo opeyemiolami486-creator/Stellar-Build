@@ -241,7 +241,7 @@ export default function TransferPage() {
           </div>
         </div>
 
-        {result.explorerUrl && (
+        {result?.explorerUrl && (
           <a
             href={result.explorerUrl}
             target="_blank"
@@ -260,27 +260,26 @@ export default function TransferPage() {
               ZK Public Signals (on-chain)
             </h2>
             {[
-              { label: "Nullifier",   val: proofData.publicInputs.nullifier },
-              { label: "Commitment",  val: proofData.publicInputs.commitment },
-              { label: "Merkle Root", val: proofData.publicInputs.merkleRoot },
-            ].map(({ label, val }) => (
-              <div key={label} className="flex items-center justify-between py-1.5">
-                <span className="text-slate-500 text-xs">{label}</span>
+                { label: "Nullifier",   val: proofData.publicInputs?.nullifier ?? "N/A" },
+                { label: "Commitment",  val: proofData.publicInputs?.commitment ?? "N/A" },
+                { label: "Merkle Root", val: proofData.publicInputs?.merkleRoot ?? "N/A" },
+              ].map(({ label, val }) => (
+                <div key={label} className="flex items-center justify-between py-1.5">
+                  <span className="text-slate-500 text-xs">{label}</span>
+                  <span className="terminal text-[#6B4EFF] text-xs">
+                    {typeof val === "string" && val.length > 12 ? `${val.slice(0, 12)}…${val.slice(-8)}` : val}
+                  </span>
+                </div>
+              ))}
+              <div className="flex items-center justify-between py-1.5">
+                <span className="text-slate-500 text-xs">Proof time</span>
                 <span className="terminal text-[#6B4EFF] text-xs">
-                  {val.slice(0, 12)}…{val.slice(-8)}
+                  {proofData.generationTimeMs ?? 0}ms
                 </span>
               </div>
-            ))}
-            <div className="flex items-center justify-between py-1.5">
-              <span className="text-slate-500 text-xs">Proof time</span>
-              <span className="terminal text-[#6B4EFF] text-xs">
-                {proofData.generationTimeMs}ms
-              </span>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* What the ZK Proof Hid */}
         <div className="card-glow rounded-2xl p-5 mb-5">
           <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-4">
             What the ZK Proof Hid
