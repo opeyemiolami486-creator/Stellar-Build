@@ -433,6 +433,11 @@ export default function ConnectPage() {
               <span className="text-slate-500">USDC Balance</span>
               <span className="text-[#00D2FF]">{parseFloat(walletInfo.usdcBalance || "0").toFixed(2)} USDC</span>
             </div>
+            {!walletInfo.exists && (
+              <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-amber-300 text-[11px]">
+                This Stellar address is valid but has not been created on testnet yet. It can still be used for connection and will show zero balances until funded.
+              </div>
+            )}
           </div>
           <button
             onClick={() => router.push("/trade")}

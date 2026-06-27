@@ -505,6 +505,7 @@ tradeRouter.get("/wallet/:address", async (req: Request, res: Response) => {
       address:     info.address,
       xlmBalance:  info.xlmBalance,
       usdcBalance: info.usdcBalance,
+      exists:      info.exists,
     });
   } catch (err) {
     return res.status(404).json({ error: "Wallet not found on Testnet" });

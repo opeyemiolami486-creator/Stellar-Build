@@ -36,6 +36,7 @@ export interface WalletInfo {
   xlmBalance: string;
   usdcBalance: string;
   sequence: string;
+  exists: boolean;
 }
 
 export interface TradeExecution {
@@ -57,25 +58,38 @@ const soroban = new SorobanRpc.Server(SOROBAN_URL);
 
 // ── Wallet queries ────────────────────────────────────────────────────────────
 
+function isNotFoundError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const candidate = error as { status?: number; response?: { status?: number }; message?: string };
+  return candidate.status === 404 || candidate.response?.status === 404 || /not found/i.test(candidate.message ?? "");
+}
+
 export async function getWalletInfo(address: string): Promise<WalletInfo> {
-  const account = await horizon.loadAccount(address);
+  try {
+    const account = await horizon.loadAccount(address);
 
-  let xlmBalance  = "0";
-  let usdcBalance = "0";
+    let xlmBalance  = "0";
+    let usdcBalance = "0";
 
-  for (const bal of account.balances) {
-    if (bal.asset_type === "native") {
-      xlmBalance = bal.balance;
-    } else if (
-      bal.asset_type === "credit_alphanum4" &&
-      (bal as any).asset_code === "USDC" &&
-      (!TESTNET_USDC_ISSUER || (bal as any).asset_issuer === TESTNET_USDC_ISSUER)
-    ) {
-      usdcBalance = bal.balance;
+    for (const bal of account.balances) {
+      if (bal.asset_type === "native") {
+        xlmBalance = bal.balance;
+      } else if (
+        bal.asset_type === "credit_alphanum4" &&
+        (bal as any).asset_code === "USDC" &&
+        (!TESTNET_USDC_ISSUER || (bal as any).asset_issuer === TESTNET_USDC_ISSUER)
+      ) {
+        usdcBalance = bal.balance;
+      }
     }
-  }
 
-  return { address, xlmBalance, usdcBalance, sequence: account.sequence };
+    return { address, xlmBalance, usdcBalance, sequence: account.sequence, exists: true };
+  } catch (error) {
+    if (isNotFoundError(error)) {
+      return { address, xlmBalance: "0", usdcBalance: "0", sequence: "0", exists: false };
+    }
+    throw error;
+  }
 }
 
 export function xlmToStroops(xlm: string): bigint {

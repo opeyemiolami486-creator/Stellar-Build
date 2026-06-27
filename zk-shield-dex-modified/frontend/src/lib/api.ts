@@ -10,6 +10,7 @@ export interface WalletInfo {
   address: string;
   xlmBalance: string;
   usdcBalance: string;
+  exists?: boolean;
 }
 
 export interface WalletProviderInfo {
