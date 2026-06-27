@@ -1,0 +1,8 @@
+# Verifier.toml — Public inputs for proof verification
+# These match the public signals submitted on-chain to Soroban
+
+nullifier = "0x0000000000000000000000000000000000000000000000000000000000000001"
+commitment = "0x0000000000000000000000000000000000000000000000000000000000000002"
+nonce = "1700000000"
+has_price_limit = "0"
+merkle_root = "0xdeadbeefcafebabe0123456789abcdef0123456789abcdef0123456789abcdef"

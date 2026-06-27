@@ -1,0 +1,7 @@
+[package]
+name = "trade_proof"
+type = "bin"
+authors = ["ZK Shield DEX"]
+compiler_version = ">=0.31.0"
+
+[dependencies]

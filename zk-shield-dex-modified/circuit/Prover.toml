@@ -1,0 +1,14 @@
+# Prover.toml — Example witness for trade_proof circuit
+# Private inputs (never revealed):
+wallet_balance = "10000000000"   # 1000 XLM in stroops
+trade_amount = "1000000000"      # 100 XLM in stroops
+asset_secret = "12345678901234567890123456789012"
+nullifier_secret = "98765432109876543210987654321098"
+price_limit = "0"
+
+# Public inputs (submitted to Soroban):
+nullifier = "0x0000000000000000000000000000000000000000000000000000000000000001"
+commitment = "0x0000000000000000000000000000000000000000000000000000000000000002"
+nonce = "1700000000"
+has_price_limit = "0"
+merkle_root = "0xdeadbeefcafebabe0123456789abcdef0123456789abcdef0123456789abcdef"

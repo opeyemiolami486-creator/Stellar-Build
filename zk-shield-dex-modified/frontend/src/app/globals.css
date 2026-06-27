@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-primary: #080d1a;
+  --bg-card: #0e1726;
+  --border-glow: #6B4EFF44;
+  --text-primary: #e2e8f0;
+  --text-muted: #64748b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+}
+
+/* Glow card */
+.card-glow {
+  background: var(--bg-card);
+  border: 1px solid var(--border-glow);
+  box-shadow: 0 0 30px #6B4EFF18, inset 0 1px 0 #ffffff08;
+}
+
+/* Animated ZK shield gradient */
+.shield-gradient {
+  background: linear-gradient(135deg, #6B4EFF, #00D2FF, #00C896);
+  background-size: 200% 200%;
+  animation: gradient-shift 4s ease infinite;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@keyframes gradient-shift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Pulsing proof indicator */
+.proof-pulse {
+  animation: proof-pulse 2s ease-in-out infinite;
+}
+
+@keyframes proof-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.7; transform: scale(1.05); }
+}
+
+/* Monospace terminal text */
+.terminal {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.8rem;
+}
+
+/* Step connector line */
+.step-line::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  width: 2px;
+  height: 24px;
+  background: linear-gradient(#6B4EFF, transparent);
+  transform: translateX(-50%);
+}
+
+/* Scan line animation for proof generation */
+@keyframes scan {
+  0%   { transform: translateY(-100%); opacity: 0.6; }
+  100% { transform: translateY(100%); opacity: 0; }
+}
+
+.scan-line {
+  animation: scan 1.5s linear infinite;
+}

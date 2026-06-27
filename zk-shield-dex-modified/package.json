@@ -1,0 +1,17 @@
+{
+  "name": "zk-shield-dex",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Stellar Privacy Trading Layer — ZK Shield DEX",
+  "scripts": {
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "install:all": "npm install --prefix backend && npm install --prefix frontend",
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd frontend && npm run build"
+  },
+  "workspaces": [
+    "backend",
+    "frontend"
+  ]
+}
