@@ -27,8 +27,9 @@ export function NavBar() {
         <Link href="/" className="flex items-center gap-2 font-bold text-white">
           <span className="text-xl">🛡️</span>
           <span className="hidden sm:inline">ZK Shield DEX</span>
-          <span className="text-xs text-amber-400 bg-amber-400/10 border border-amber-400/20 rounded-full px-2 py-0.5 ml-1">
-            TESTNET · MAINNET SOON
+          <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-300 shadow-[0_0_0_1px_rgba(16,185,129,0.12)]">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+            Testnet
           </span>
         </Link>
 
