@@ -12,6 +12,16 @@ export interface WalletInfo {
   usdcBalance: string;
 }
 
+export interface WalletProviderInfo {
+  id: string;
+  name: string;
+  type: string;
+  description: string;
+  installUrl: string;
+  deepLinkSchema?: string;
+  supportsMobile: boolean;
+}
+
 export interface TradeIntentResponse {
   intentId: string;
   status: string;
@@ -71,6 +81,26 @@ export const api = {
   getWallet: async (address: string): Promise<WalletInfo> => {
     const res = await fetch(`${BASE}/api/wallet/${address}`);
     if (!res.ok) throw new Error("Wallet not found on Testnet");
+    return res.json();
+  },
+
+  getWalletProviders: async (): Promise<WalletProviderInfo[]> => {
+    const res = await fetch(`${BASE}/api/wallet/providers`);
+    if (!res.ok) throw new Error("Could not load wallet providers");
+    const data = await res.json();
+    return data.providers ?? [];
+  },
+
+  verifyWallet: async (address: string, provider?: string) => {
+    const res = await fetch(`${BASE}/api/wallet/verify`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ address, provider }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(err.error ?? "Wallet verification failed");
+    }
     return res.json();
   },
 

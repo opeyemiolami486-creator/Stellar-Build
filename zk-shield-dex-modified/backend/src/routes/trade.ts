@@ -38,6 +38,46 @@ const intentStore   = new Map<string, any>();
 const proofStore    = new Map<string, any>();
 const transferStore = new Map<string, any>();
 
+const supportedWalletProviders = [
+  {
+    id: "freighter",
+    name: "Freighter",
+    type: "extension",
+    description: "Browser extension for desktop and laptop use",
+    installUrl: "https://www.freighter.app/",
+    supportsMobile: false,
+  },
+  {
+    id: "solar",
+    name: "Solar Wallet",
+    type: "mobile",
+    description: "Mobile-first Stellar wallet for iOS and Android",
+    installUrl: "https://www.solarwallet.io/",
+    deepLinkSchema: "solarwallet://",
+    supportsMobile: true,
+  },
+  {
+    id: "xbull",
+    name: "xBull Wallet",
+    type: "mobile",
+    description: "Multi-platform Stellar wallet with mobile support",
+    installUrl: "https://www.xbull.app/",
+    deepLinkSchema: "xbull://",
+    supportsMobile: true,
+  },
+  {
+    id: "albedo",
+    name: "Albedo",
+    type: "mobile",
+    description: "Stellar wallet with browser and mobile compatibility",
+    installUrl: "https://albedo.link/",
+    deepLinkSchema: "albedo://",
+    supportsMobile: true,
+  },
+];
+
+const stellarAddressRegex = /^G[1-9A-HJ-NP-Za-km-z]{55}$/;
+
 // ── Relayer keypair ───────────────────────────────────────────────────────────
 
 function getRelayerKeypair(): Keypair {
@@ -422,6 +462,40 @@ tradeRouter.get("/status/:tradeHash", async (_req: Request, res: Response) => {
     settled:  true,
     explorerUrl: `https://stellar.expert/explorer/testnet/tx/${tradeHash.replace("0x", "")}`,
   });
+});
+
+tradeRouter.get("/wallet/providers", (_req: Request, res: Response) => {
+  return res.json({
+    network: "testnet",
+    providers: supportedWalletProviders,
+  });
+});
+
+tradeRouter.post("/wallet/verify", (req: Request, res: Response) => {
+  try {
+    const { address, provider } = req.body as { address?: string; provider?: string };
+    const normalizedAddress = address?.trim();
+
+    if (!normalizedAddress) {
+      return res.status(400).json({ error: "Wallet address is required" });
+    }
+
+    if (!stellarAddressRegex.test(normalizedAddress)) {
+      return res.status(400).json({ error: "Invalid Stellar public key format" });
+    }
+
+    const providerId = provider?.trim().toLowerCase() ?? "manual";
+    const providerInfo = supportedWalletProviders.find((item) => item.id === providerId);
+
+    return res.json({
+      address: normalizedAddress,
+      provider: providerInfo?.id ?? providerId,
+      network: "testnet",
+      valid: true,
+    });
+  } catch (err) {
+    return res.status(500).json({ error: (err as Error).message });
+  }
 });
 
 tradeRouter.get("/wallet/:address", async (req: Request, res: Response) => {
