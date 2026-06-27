@@ -47,6 +47,55 @@ const FALLBACK_PROVIDERS: WalletProviderInfo[] = [
   },
 ];
 
+type WalletWindow = Window &
+  typeof globalThis & {
+    freighter?: {
+      getPublicKey?: () => Promise<{ publicKey?: string } | string | null>;
+      getAddress?: () => Promise<string | { address?: string } | null>;
+      requestAccess?: () => Promise<{ publicKey?: string; address?: string } | string | null>;
+      isConnected?: () => Promise<boolean>;
+    };
+    solar?: {
+      getPublicKey?: () => Promise<{ publicKey?: string } | string | null>;
+      getAddress?: () => Promise<string | { address?: string } | null>;
+      requestAccess?: () => Promise<{ publicKey?: string; address?: string } | string | null>;
+    };
+    solarWallet?: {
+      getPublicKey?: () => Promise<{ publicKey?: string } | string | null>;
+      getAddress?: () => Promise<string | { address?: string } | null>;
+      requestAccess?: () => Promise<{ publicKey?: string; address?: string } | string | null>;
+    };
+    xbull?: {
+      getPublicKey?: () => Promise<{ publicKey?: string } | string | null>;
+      getAddress?: () => Promise<string | { address?: string } | null>;
+      requestAccess?: () => Promise<{ publicKey?: string; address?: string } | string | null>;
+    };
+    albedo?: {
+      publicKey?: string;
+      getPublicKey?: () => Promise<string | { publicKey?: string } | null>;
+      address?: string;
+      getAddress?: () => Promise<string | { address?: string } | null>;
+    };
+  };
+
+async function readAddressFromResult(result: unknown): Promise<string | null> {
+  if (typeof result === "string") {
+    const trimmed = result.trim();
+    return trimmed ? trimmed : null;
+  }
+
+  if (result && typeof result === "object") {
+    const record = result as Record<string, unknown>;
+    const candidate = record.publicKey ?? record.address ?? record.pubkey ?? record.publicAddress;
+    if (typeof candidate === "string") {
+      const trimmed = candidate.trim();
+      return trimmed ? trimmed : null;
+    }
+  }
+
+  return null;
+}
+
 export default function ConnectPage() {
   const router = useRouter();
   const {
@@ -112,40 +161,48 @@ export default function ConnectPage() {
   async function tryInjectedWallet(providerId: string) {
     if (typeof window === "undefined") return null;
 
-    const win = window as any;
+    const win = window as unknown as WalletWindow;
+    const attempts: Array<{ target: any; methods: string[] }> = [];
 
     switch (providerId) {
       case "freighter":
-        if (win.freighter?.getPublicKey) {
-          const { publicKey } = await win.freighter.getPublicKey();
-          return typeof publicKey === "string" ? publicKey : null;
-        }
+        attempts.push({ target: win.freighter, methods: ["getPublicKey", "getAddress", "requestAccess"] });
         break;
       case "solar":
-        if (win.solar?.getPublicKey) {
-          const { publicKey } = await win.solar.getPublicKey();
-          return typeof publicKey === "string" ? publicKey : null;
-        }
-        if (win.solarWallet?.getPublicKey) {
-          const { publicKey } = await win.solarWallet.getPublicKey();
-          return typeof publicKey === "string" ? publicKey : null;
-        }
+        attempts.push({ target: win.solar, methods: ["getPublicKey", "getAddress", "requestAccess"] });
+        attempts.push({ target: win.solarWallet, methods: ["getPublicKey", "getAddress", "requestAccess"] });
         break;
       case "xbull":
-        if (win.xbull?.getPublicKey) {
-          const { publicKey } = await win.xbull.getPublicKey();
-          return typeof publicKey === "string" ? publicKey : null;
-        }
+        attempts.push({ target: win.xbull, methods: ["getPublicKey", "getAddress", "requestAccess"] });
         break;
       case "albedo":
-        if (win.albedo?.publicKey) return win.albedo.publicKey;
-        if (win.albedo?.getPublicKey) {
-          const publicKey = await win.albedo.getPublicKey();
-          return typeof publicKey === "string" ? publicKey : null;
-        }
+        attempts.push({ target: win.albedo, methods: ["publicKey", "address", "getPublicKey", "getAddress"] });
         break;
       default:
         break;
+    }
+
+    for (const attempt of attempts) {
+      for (const method of attempt.methods) {
+        const candidate = attempt.target?.[method];
+        if (typeof candidate !== "function") {
+          if (method === "publicKey" || method === "address") {
+            const directValue = attempt.target?.[method];
+            if (typeof directValue === "string") {
+              return directValue.trim();
+            }
+          }
+          continue;
+        }
+
+        try {
+          const result = await candidate();
+          const address = await readAddressFromResult(result);
+          if (address) return address;
+        } catch {
+          // Continue to the next provider method if the wallet rejects the request.
+        }
+      }
     }
 
     return null;
@@ -165,13 +222,22 @@ export default function ConnectPage() {
         return;
       }
 
-      if (typeof window !== "undefined" && provider.deepLinkSchema) {
-        window.location.href = provider.deepLinkSchema;
+      if (typeof window !== "undefined") {
+        if (provider.type === "mobile" && provider.deepLinkSchema) {
+          window.location.href = provider.deepLinkSchema;
+          window.setTimeout(() => {
+            if (provider.installUrl) {
+              window.open(provider.installUrl, "_blank", "noopener,noreferrer");
+            }
+          }, 800);
+        } else if (provider.installUrl) {
+          window.open(provider.installUrl, "_blank", "noopener,noreferrer");
+        }
       }
 
       setStatus("error");
       setError(
-        `${provider.name} was not detected in this browser. Open the app on your phone or install it, then paste your public key below to continue.`
+        `${provider.name} was not detected. If it is already installed, approve the connection prompt and try again. On mobile, the wallet app should open automatically.`
       );
     } catch (e: any) {
       setStatus("error");
