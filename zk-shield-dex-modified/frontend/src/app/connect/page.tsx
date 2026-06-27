@@ -55,6 +55,12 @@ type WalletWindow = Window &
       requestAccess?: () => Promise<{ publicKey?: string; address?: string } | string | null>;
       isConnected?: () => Promise<boolean>;
     };
+    freighterApi?: {
+      getPublicKey?: () => Promise<{ publicKey?: string } | string | null>;
+      getAddress?: () => Promise<string | { address?: string } | null>;
+      requestAccess?: () => Promise<{ publicKey?: string; address?: string } | string | null>;
+      isConnected?: () => Promise<boolean>;
+    };
     solar?: {
       getPublicKey?: () => Promise<{ publicKey?: string } | string | null>;
       getAddress?: () => Promise<string | { address?: string } | null>;
@@ -65,7 +71,32 @@ type WalletWindow = Window &
       getAddress?: () => Promise<string | { address?: string } | null>;
       requestAccess?: () => Promise<{ publicKey?: string; address?: string } | string | null>;
     };
+    solarwallet?: {
+      getPublicKey?: () => Promise<{ publicKey?: string } | string | null>;
+      getAddress?: () => Promise<string | { address?: string } | null>;
+      requestAccess?: () => Promise<{ publicKey?: string; address?: string } | string | null>;
+    };
+    stellarWallet?: {
+      getPublicKey?: () => Promise<{ publicKey?: string } | string | null>;
+      getAddress?: () => Promise<string | { address?: string } | null>;
+      requestAccess?: () => Promise<{ publicKey?: string; address?: string } | string | null>;
+    };
+    stellarwallet?: {
+      getPublicKey?: () => Promise<{ publicKey?: string } | string | null>;
+      getAddress?: () => Promise<string | { address?: string } | null>;
+      requestAccess?: () => Promise<{ publicKey?: string; address?: string } | string | null>;
+    };
     xbull?: {
+      getPublicKey?: () => Promise<{ publicKey?: string } | string | null>;
+      getAddress?: () => Promise<string | { address?: string } | null>;
+      requestAccess?: () => Promise<{ publicKey?: string; address?: string } | string | null>;
+    };
+    xBull?: {
+      getPublicKey?: () => Promise<{ publicKey?: string } | string | null>;
+      getAddress?: () => Promise<string | { address?: string } | null>;
+      requestAccess?: () => Promise<{ publicKey?: string; address?: string } | string | null>;
+    };
+    "x-bull"?: {
       getPublicKey?: () => Promise<{ publicKey?: string } | string | null>;
       getAddress?: () => Promise<string | { address?: string } | null>;
       requestAccess?: () => Promise<{ publicKey?: string; address?: string } | string | null>;
@@ -172,7 +203,7 @@ export default function ConnectPage() {
         attempts.push({ target: win.solar ?? win.solarWallet ?? win.solarwallet ?? win.stellarWallet ?? win.stellarwallet, methods: ["getPublicKey", "getAddress", "requestAccess"] });
         break;
       case "xbull":
-        attempts.push({ target: win.xbull ?? win["xBull"] ?? win["x-bull"], methods: ["getPublicKey", "getAddress", "requestAccess"] });
+        attempts.push({ target: win.xbull ?? win.xBull ?? win["x-bull"], methods: ["getPublicKey", "getAddress", "requestAccess"] });
         break;
       case "albedo":
         attempts.push({ target: win.albedo, methods: ["publicKey", "address", "getPublicKey", "getAddress"] });
@@ -180,7 +211,7 @@ export default function ConnectPage() {
       case "generic":
         attempts.push({ target: win.freighter ?? win.freighterApi, methods: ["getPublicKey", "getAddress", "requestAccess"] });
         attempts.push({ target: win.solar ?? win.solarWallet ?? win.solarwallet ?? win.stellarWallet ?? win.stellarwallet, methods: ["getPublicKey", "getAddress", "requestAccess"] });
-        attempts.push({ target: win.xbull ?? win["xBull"] ?? win["x-bull"], methods: ["getPublicKey", "getAddress", "requestAccess"] });
+        attempts.push({ target: win.xbull ?? win.xBull ?? win["x-bull"], methods: ["getPublicKey", "getAddress", "requestAccess"] });
         attempts.push({ target: win.albedo, methods: ["publicKey", "address", "getPublicKey", "getAddress"] });
         break;
       default:
