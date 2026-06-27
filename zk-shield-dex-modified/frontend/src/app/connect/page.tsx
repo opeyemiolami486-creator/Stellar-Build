@@ -5,8 +5,8 @@ import { api, type WalletProviderInfo } from "@/lib/api";
 import { useWallet } from "@/lib/wallet";
 
 const DEMO_WALLETS = [
-  { label: "Demo Wallet A", address: "GAHJJJKMOKYE4RVPZEWZTKH5FVI4PA3VL7GK2LFNUBSGBV4C9C8MXHQ" },
-  { label: "Demo Wallet B", address: "GCEZWKCA5VLDNRLN3RPRJMRZOX3Z6G5CHCGYWDNJI8NDYBP1ESHGKEC" },
+  { label: "Demo Wallet A", address: "GAO3SJLUBA7RCO2DQKFL5XBEYX2SF5CXTJ75WS43VBNUW6THFCBBFVHS" },
+  { label: "Demo Wallet B", address: "GAHR776X5Z3VU7PLHWWM5B2FP6RZBHPNDEH4CJNRQ4UQBZ6JPBMBOAV3" },
 ];
 
 const FALLBACK_PROVIDERS: WalletProviderInfo[] = [
@@ -166,16 +166,21 @@ export default function ConnectPage() {
 
     switch (providerId) {
       case "freighter":
-        attempts.push({ target: win.freighter, methods: ["getPublicKey", "getAddress", "requestAccess"] });
+        attempts.push({ target: win.freighter ?? win.freighterApi, methods: ["getPublicKey", "getAddress", "requestAccess"] });
         break;
       case "solar":
-        attempts.push({ target: win.solar, methods: ["getPublicKey", "getAddress", "requestAccess"] });
-        attempts.push({ target: win.solarWallet, methods: ["getPublicKey", "getAddress", "requestAccess"] });
+        attempts.push({ target: win.solar ?? win.solarWallet ?? win.solarwallet ?? win.stellarWallet ?? win.stellarwallet, methods: ["getPublicKey", "getAddress", "requestAccess"] });
         break;
       case "xbull":
-        attempts.push({ target: win.xbull, methods: ["getPublicKey", "getAddress", "requestAccess"] });
+        attempts.push({ target: win.xbull ?? win["xBull"] ?? win["x-bull"], methods: ["getPublicKey", "getAddress", "requestAccess"] });
         break;
       case "albedo":
+        attempts.push({ target: win.albedo, methods: ["publicKey", "address", "getPublicKey", "getAddress"] });
+        break;
+      case "generic":
+        attempts.push({ target: win.freighter ?? win.freighterApi, methods: ["getPublicKey", "getAddress", "requestAccess"] });
+        attempts.push({ target: win.solar ?? win.solarWallet ?? win.solarwallet ?? win.stellarWallet ?? win.stellarwallet, methods: ["getPublicKey", "getAddress", "requestAccess"] });
+        attempts.push({ target: win.xbull ?? win["xBull"] ?? win["x-bull"], methods: ["getPublicKey", "getAddress", "requestAccess"] });
         attempts.push({ target: win.albedo, methods: ["publicKey", "address", "getPublicKey", "getAddress"] });
         break;
       default:
@@ -216,7 +221,7 @@ export default function ConnectPage() {
     setError("");
 
     try {
-      const injectedAddress = await tryInjectedWallet(providerId);
+      const injectedAddress = await tryInjectedWallet(providerId) ?? await tryInjectedWallet("generic");
       if (injectedAddress) {
         await handleConnect(injectedAddress, providerId);
         return;
