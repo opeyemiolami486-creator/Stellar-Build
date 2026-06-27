@@ -14,7 +14,7 @@ const FALLBACK_PROVIDERS: WalletProviderInfo[] = [
     id: "freighter",
     name: "Freighter",
     type: "extension",
-    description: "Browser extension for desktop and laptop use",
+    description: "Desktop browser extension for Stellar testnet signing",
     installUrl: "https://www.freighter.app/",
     supportsMobile: false,
   },
@@ -22,7 +22,7 @@ const FALLBACK_PROVIDERS: WalletProviderInfo[] = [
     id: "solar",
     name: "Solar Wallet",
     type: "mobile",
-    description: "Mobile-first Stellar wallet for iOS and Android",
+    description: "Popular mobile wallet for Stellar testnet signing",
     installUrl: "https://www.solarwallet.io/",
     deepLinkSchema: "solarwallet://",
     supportsMobile: true,
@@ -31,7 +31,7 @@ const FALLBACK_PROVIDERS: WalletProviderInfo[] = [
     id: "xbull",
     name: "xBull Wallet",
     type: "mobile",
-    description: "Multi-platform Stellar wallet with mobile support",
+    description: "Widely used mobile wallet with Stellar support",
     installUrl: "https://www.xbull.app/",
     deepLinkSchema: "xbull://",
     supportsMobile: true,
@@ -40,9 +40,18 @@ const FALLBACK_PROVIDERS: WalletProviderInfo[] = [
     id: "albedo",
     name: "Albedo",
     type: "mobile",
-    description: "Stellar wallet with browser and mobile compatibility",
+    description: "Web and mobile wallet for Stellar applications",
     installUrl: "https://albedo.link/",
     deepLinkSchema: "albedo://",
+    supportsMobile: true,
+  },
+  {
+    id: "lobstr",
+    name: "LOBSTR Wallet",
+    type: "mobile",
+    description: "Popular Stellar wallet for mobile and desktop",
+    installUrl: "https://lobstr.co/",
+    deepLinkSchema: "lobstr://",
     supportsMobile: true,
   },
 ];
@@ -106,6 +115,11 @@ type WalletWindow = Window &
       getPublicKey?: () => Promise<string | { publicKey?: string } | null>;
       address?: string;
       getAddress?: () => Promise<string | { address?: string } | null>;
+    };
+    lobstr?: {
+      getPublicKey?: () => Promise<{ publicKey?: string } | string | null>;
+      getAddress?: () => Promise<string | { address?: string } | null>;
+      requestAccess?: () => Promise<{ publicKey?: string; address?: string } | string | null>;
     };
   };
 
@@ -208,11 +222,15 @@ export default function ConnectPage() {
       case "albedo":
         attempts.push({ target: win.albedo, methods: ["publicKey", "address", "getPublicKey", "getAddress"] });
         break;
+      case "lobstr":
+        attempts.push({ target: win.lobstr, methods: ["getPublicKey", "getAddress", "requestAccess"] });
+        break;
       case "generic":
         attempts.push({ target: win.freighter ?? win.freighterApi, methods: ["getPublicKey", "getAddress", "requestAccess"] });
         attempts.push({ target: win.solar ?? win.solarWallet ?? win.solarwallet ?? win.stellarWallet ?? win.stellarwallet, methods: ["getPublicKey", "getAddress", "requestAccess"] });
         attempts.push({ target: win.xbull ?? win.xBull ?? win["x-bull"], methods: ["getPublicKey", "getAddress", "requestAccess"] });
         attempts.push({ target: win.albedo, methods: ["publicKey", "address", "getPublicKey", "getAddress"] });
+        attempts.push({ target: win.lobstr, methods: ["getPublicKey", "getAddress", "requestAccess"] });
         break;
       default:
         break;
@@ -260,7 +278,8 @@ export default function ConnectPage() {
 
       if (typeof window !== "undefined") {
         if (provider.type === "mobile" && provider.deepLinkSchema) {
-          window.location.href = provider.deepLinkSchema;
+          const deepLink = `${provider.deepLinkSchema}${provider.id === "solar" ? "//?network=testnet" : ""}`;
+          window.location.href = deepLink;
           window.setTimeout(() => {
             if (provider.installUrl) {
               window.open(provider.installUrl, "_blank", "noopener,noreferrer");
@@ -273,7 +292,7 @@ export default function ConnectPage() {
 
       setStatus("error");
       setError(
-        `${provider.name} was not detected. If it is already installed, approve the connection prompt and try again. On mobile, the wallet app should open automatically.`
+        `${provider.name} was not detected. If it is already installed, approve the connection prompt and try again. On mobile, the wallet app should open automatically on Stellar testnet.`
       );
     } catch (e: any) {
       setStatus("error");
