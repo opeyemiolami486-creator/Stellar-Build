@@ -14,44 +14,16 @@ const FALLBACK_PROVIDERS: WalletProviderInfo[] = [
     id: "freighter",
     name: "Freighter",
     type: "extension",
-    description: "Desktop browser extension for Stellar testnet signing",
+    description: "Browser extension for Stellar (desktop Chrome/Firefox)",
     installUrl: "https://www.freighter.app/",
     supportsMobile: false,
   },
   {
-    id: "solar",
-    name: "Solar Wallet",
-    type: "mobile",
-    description: "Popular mobile wallet for Stellar testnet signing",
-    installUrl: "https://www.solarwallet.io/",
-    deepLinkSchema: "solarwallet://",
-    supportsMobile: true,
-  },
-  {
-    id: "xbull",
-    name: "xBull Wallet",
-    type: "mobile",
-    description: "Widely used mobile wallet with Stellar support",
-    installUrl: "https://www.xbull.app/",
-    deepLinkSchema: "xbull://",
-    supportsMobile: true,
-  },
-  {
     id: "albedo",
     name: "Albedo",
-    type: "mobile",
-    description: "Web and mobile wallet for Stellar applications",
+    type: "web",
+    description: "Web-based Stellar wallet, works on desktop and mobile",
     installUrl: "https://albedo.link/",
-    deepLinkSchema: "albedo://",
-    supportsMobile: true,
-  },
-  {
-    id: "lobstr",
-    name: "LOBSTR Wallet",
-    type: "mobile",
-    description: "Popular Stellar wallet for mobile and desktop",
-    installUrl: "https://lobstr.co/",
-    deepLinkSchema: "lobstr://",
     supportsMobile: true,
   },
 ];
@@ -69,57 +41,6 @@ type WalletWindow = Window &
       getAddress?: () => Promise<string | { address?: string } | null>;
       requestAccess?: () => Promise<{ publicKey?: string; address?: string } | string | null>;
       isConnected?: () => Promise<boolean>;
-    };
-    solar?: {
-      getPublicKey?: () => Promise<{ publicKey?: string } | string | null>;
-      getAddress?: () => Promise<string | { address?: string } | null>;
-      requestAccess?: () => Promise<{ publicKey?: string; address?: string } | string | null>;
-    };
-    solarWallet?: {
-      getPublicKey?: () => Promise<{ publicKey?: string } | string | null>;
-      getAddress?: () => Promise<string | { address?: string } | null>;
-      requestAccess?: () => Promise<{ publicKey?: string; address?: string } | string | null>;
-    };
-    solarwallet?: {
-      getPublicKey?: () => Promise<{ publicKey?: string } | string | null>;
-      getAddress?: () => Promise<string | { address?: string } | null>;
-      requestAccess?: () => Promise<{ publicKey?: string; address?: string } | string | null>;
-    };
-    stellarWallet?: {
-      getPublicKey?: () => Promise<{ publicKey?: string } | string | null>;
-      getAddress?: () => Promise<string | { address?: string } | null>;
-      requestAccess?: () => Promise<{ publicKey?: string; address?: string } | string | null>;
-    };
-    stellarwallet?: {
-      getPublicKey?: () => Promise<{ publicKey?: string } | string | null>;
-      getAddress?: () => Promise<string | { address?: string } | null>;
-      requestAccess?: () => Promise<{ publicKey?: string; address?: string } | string | null>;
-    };
-    xbull?: {
-      getPublicKey?: () => Promise<{ publicKey?: string } | string | null>;
-      getAddress?: () => Promise<string | { address?: string } | null>;
-      requestAccess?: () => Promise<{ publicKey?: string; address?: string } | string | null>;
-    };
-    xBull?: {
-      getPublicKey?: () => Promise<{ publicKey?: string } | string | null>;
-      getAddress?: () => Promise<string | { address?: string } | null>;
-      requestAccess?: () => Promise<{ publicKey?: string; address?: string } | string | null>;
-    };
-    "x-bull"?: {
-      getPublicKey?: () => Promise<{ publicKey?: string } | string | null>;
-      getAddress?: () => Promise<string | { address?: string } | null>;
-      requestAccess?: () => Promise<{ publicKey?: string; address?: string } | string | null>;
-    };
-    albedo?: {
-      publicKey?: string;
-      getPublicKey?: () => Promise<string | { publicKey?: string } | null>;
-      address?: string;
-      getAddress?: () => Promise<string | { address?: string } | null>;
-    };
-    lobstr?: {
-      getPublicKey?: () => Promise<{ publicKey?: string } | string | null>;
-      getAddress?: () => Promise<string | { address?: string } | null>;
-      requestAccess?: () => Promise<{ publicKey?: string; address?: string } | string | null>;
     };
   };
 
@@ -172,6 +93,15 @@ export default function ConnectPage() {
 
     loadProviders();
 
+    // Handle Albedo callback
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const albedoAddress = params.get("address");
+      if (albedoAddress) {
+        handleConnect(albedoAddress, "albedo");
+      }
+    }
+
     if (connectedAddress) {
       setAddress(connectedAddress);
       api.getWallet(connectedAddress)
@@ -203,6 +133,13 @@ export default function ConnectPage() {
     }
   }
 
+  async function connectAlbedo() {
+    const currentOrigin = typeof window !== "undefined" ? window.location.origin : "";
+    const returnUrl = `${currentOrigin}/connect?wallet=albedo_return`;
+    const alledoUrl = `https://albedo.link/?callback=${encodeURIComponent(returnUrl)}&network=testnet`;
+    window.location.href = alledoUrl;
+  }
+
   async function tryInjectedWallet(providerId: string) {
     if (typeof window === "undefined") return null;
 
@@ -213,26 +150,11 @@ export default function ConnectPage() {
       case "freighter":
         attempts.push({ target: win.freighter ?? win.freighterApi, methods: ["getPublicKey", "getAddress", "requestAccess"] });
         break;
-      case "solar":
-        attempts.push({ target: win.solar ?? win.solarWallet ?? win.solarwallet ?? win.stellarWallet ?? win.stellarwallet, methods: ["getPublicKey", "getAddress", "requestAccess"] });
-        break;
-      case "xbull":
-        attempts.push({ target: win.xbull ?? win.xBull ?? win["x-bull"], methods: ["getPublicKey", "getAddress", "requestAccess"] });
-        break;
       case "albedo":
-        attempts.push({ target: win.albedo, methods: ["publicKey", "address", "getPublicKey", "getAddress"] });
-        break;
-      case "lobstr":
-        attempts.push({ target: win.lobstr, methods: ["getPublicKey", "getAddress", "requestAccess"] });
-        break;
-      case "generic":
-        attempts.push({ target: win.freighter ?? win.freighterApi, methods: ["getPublicKey", "getAddress", "requestAccess"] });
-        attempts.push({ target: win.solar ?? win.solarWallet ?? win.solarwallet ?? win.stellarWallet ?? win.stellarwallet, methods: ["getPublicKey", "getAddress", "requestAccess"] });
-        attempts.push({ target: win.xbull ?? win.xBull ?? win["x-bull"], methods: ["getPublicKey", "getAddress", "requestAccess"] });
-        attempts.push({ target: win.albedo, methods: ["publicKey", "address", "getPublicKey", "getAddress"] });
-        attempts.push({ target: win.lobstr, methods: ["getPublicKey", "getAddress", "requestAccess"] });
-        break;
+        // Albedo doesn't inject into window; it uses web-based redirect
+        return null;
       default:
+        attempts.push({ target: win.freighter ?? win.freighterApi, methods: ["getPublicKey", "getAddress", "requestAccess"] });
         break;
     }
 
@@ -270,29 +192,32 @@ export default function ConnectPage() {
     setError("");
 
     try {
-      const injectedAddress = await tryInjectedWallet(providerId) ?? await tryInjectedWallet("generic");
+      // For Albedo, use web-based redirect
+      if (providerId === "albedo") {
+        localStorage.setItem("zk_wallet_pending_provider", "albedo");
+        connectAlbedo();
+        return;
+      }
+
+      // For other providers, try injection
+      const injectedAddress = await tryInjectedWallet(providerId);
       if (injectedAddress) {
         await handleConnect(injectedAddress, providerId);
         return;
       }
 
-      if (typeof window !== "undefined") {
-        if (provider.type === "mobile" && provider.deepLinkSchema) {
-          const deepLink = `${provider.deepLinkSchema}${provider.id === "solar" ? "//?network=testnet" : ""}`;
-          window.location.href = deepLink;
-          window.setTimeout(() => {
-            if (provider.installUrl) {
-              window.open(provider.installUrl, "_blank", "noopener,noreferrer");
-            }
-          }, 800);
-        } else if (provider.installUrl) {
-          window.open(provider.installUrl, "_blank", "noopener,noreferrer");
-        }
+      // If not found and it's a web wallet, prompt user to visit the site
+      if (provider.type === "web" && provider.installUrl) {
+        setStatus("error");
+        setError(
+          `${provider.name} is not detected on this page. Click the link below to connect via ${provider.name}, or enter your public key manually below.`
+        );
+        return;
       }
 
       setStatus("error");
       setError(
-        `${provider.name} was not detected. If it is already installed, approve the connection prompt and try again. On mobile, the wallet app should open automatically on Stellar testnet.`
+        `${provider.name} was not detected. Make sure it is installed and enabled as a browser extension, then try again.`
       );
     } catch (e: any) {
       setStatus("error");
