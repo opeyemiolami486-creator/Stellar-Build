@@ -144,55 +144,26 @@ export async function submitProofToSoroban(
   const relayerAccount = await soroban.getAccount(relayerKeypair.publicKey());
   const contract = new Contract(contractId);
 
-  const proofHex    = proofBytes.replace("0x", "");
-  const proofBuffer = Buffer.from(proofHex, "hex");
-  const proofArg    = xdr.ScVal.scvBytes(proofBuffer);
+  const nullifierBuf  = Buffer.from(publicInputs.nullifier.replace("0x", ""), "hex");
+  const commitmentBuf = Buffer.from(publicInputs.commitment.replace("0x", ""), "hex");
 
-  const nullifierBuf   = Buffer.from(publicInputs.nullifier.replace("0x", ""), "hex");
-  const commitmentBuf  = Buffer.from(publicInputs.commitment.replace("0x", ""), "hex");
-  const merkleRootBuf  = Buffer.from(publicInputs.merkleRoot.replace("0x", ""), "hex");
-
-  // ScvMap keys must be in lexicographic order
-  const publicInputsArg = xdr.ScVal.scvMap([
-    new xdr.ScMapEntry({
-      key: xdr.ScVal.scvSymbol("commitment"),
-      val: xdr.ScVal.scvBytes(commitmentBuf),
-    }),
-    new xdr.ScMapEntry({
-      key: xdr.ScVal.scvSymbol("has_price_limit"),
-      val: xdr.ScVal.scvU32(publicInputs.hasPriceLimit),
-    }),
-    new xdr.ScMapEntry({
-      key: xdr.ScVal.scvSymbol("merkle_root"),
-      val: xdr.ScVal.scvBytes(merkleRootBuf),
-    }),
-    new xdr.ScMapEntry({
-      key: xdr.ScVal.scvSymbol("nonce"),
-      val: xdr.ScVal.scvU64(xdr.Uint64.fromString(publicInputs.nonce.toString())),
-    }),
-    new xdr.ScMapEntry({
-      key: xdr.ScVal.scvSymbol("nullifier"),
-      val: xdr.ScVal.scvBytes(nullifierBuf),
-    }),
-  ]);
-
-  const submitterArg = new Address(relayerKeypair.publicKey()).toScVal();
+  const submitterArg  = new Address(relayerKeypair.publicKey()).toScVal();
+  const nullifierArg  = xdr.ScVal.scvBytes(nullifierBuf);
+  const commitmentArg = xdr.ScVal.scvBytes(commitmentBuf);
+  const nonceArg      = xdr.ScVal.scvU64(xdr.Uint64.fromString(publicInputs.nonce.toString()));
 
   const tx = new TransactionBuilder(relayerAccount, {
     fee: String(Number(BASE_FEE) * 10),
     networkPassphrase: NETWORK_PASSPHRASE,
   })
     .addOperation(
-      contract.call("submit_proof", submitterArg, xdr.ScVal.scvMap([
-        new xdr.ScMapEntry({
-          key: xdr.ScVal.scvSymbol("proof_bytes"),
-          val: proofArg,
-        }),
-        new xdr.ScMapEntry({
-          key: xdr.ScVal.scvSymbol("public_inputs"),
-          val: publicInputsArg,
-        }),
-      ]))
+      contract.call(
+        "submit_proof",
+        submitterArg,
+        nullifierArg,
+        commitmentArg,
+        nonceArg
+      )
     )
     .setTimeout(30)
     .build();
