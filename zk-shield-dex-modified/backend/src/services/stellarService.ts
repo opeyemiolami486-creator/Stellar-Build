@@ -64,6 +64,17 @@ function isNotFoundError(error: unknown): boolean {
   return candidate.status === 404 || candidate.response?.status === 404 || /not found/i.test(candidate.message ?? "");
 }
 
+function serializeForLog(value: unknown): string {
+  try {
+    if (typeof value === "object" && value !== null) {
+      return JSON.stringify(value, Object.getOwnPropertyNames(value), 2);
+    }
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
 export async function getWalletInfo(address: string): Promise<WalletInfo> {
   try {
     const account = await horizon.loadAccount(address);
@@ -152,6 +163,9 @@ export async function submitProofToSoroban(
   const commitmentArg = xdr.ScVal.scvBytes(commitmentBuf);
   const nonceArg      = xdr.ScVal.scvU64(xdr.Uint64.fromString(publicInputs.nonce.toString()));
 
+  const args = [submitterArg, nullifierArg, commitmentArg, nonceArg];
+  console.log("[submitProofToSoroban] args:", args.map(serializeForLog));
+
   const tx = new TransactionBuilder(relayerAccount, {
     fee: String(Number(BASE_FEE) * 10),
     networkPassphrase: NETWORK_PASSPHRASE,
@@ -170,15 +184,22 @@ export async function submitProofToSoroban(
 
   const sim = await soroban.simulateTransaction(tx);
   if (SorobanRpc.Api.isSimulationError(sim)) {
-    throw new Error(`Soroban simulation failed: ${sim.error}`);
+    throw new Error(
+      `Soroban simulation failed: ${sim.error}\n` +
+      `Simulation response: ${serializeForLog(sim)}`
+    );
   }
 
+  console.log("[submitProofToSoroban] simulation result:", serializeForLog(sim));
+
+  // Assemble the simulated tx before signing (required by Soroban SDK)
   const preparedTx = SorobanRpc.assembleTransaction(tx, sim).build();
   preparedTx.sign(relayerKeypair);
 
-  const result = await soroban.sendTransaction(preparedTx);
-  if (result.status === "ERROR") {
-    throw new Error(`Soroban transaction rejected: ${result.errorResult}`);
+  // Submit the assembled + signed transaction via Horizon
+  const result = await horizon.submitTransaction(preparedTx);
+  if (!(result as any)?.successful) {
+    throw new Error(`Soroban transaction rejected: ${serializeForLog(result)}`);
   }
 
   // Poll for ledger confirmation (max ~20s)
