@@ -1,5 +1,5 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, Bytes, BytesN, Env, Symbol, symbol_short};
+use soroban_sdk::{contract, contractimpl, contracttype, Bytes, BytesN, Env};
 
 #[contracttype]
 #[derive(Clone)]
@@ -26,9 +26,9 @@ pub struct ZkPrivacyDex;
 #[contractimpl]
 impl ZkPrivacyDex {
     pub fn initialize(env: Env, admin: soroban_sdk::Address, vk_hash: Bytes) {
-        env.storage().instance().set(&DataKey::Admin, &admin);
-        env.storage().instance().set(&DataKey::VkHash, &vk_hash);
-        env.storage().instance().set(&DataKey::TradeCount, &0u32);
+        env.storage().persistent().set(&DataKey::Admin, &admin);
+        env.storage().persistent().set(&DataKey::VkHash, &vk_hash);
+        env.storage().persistent().set(&DataKey::TradeCount, &0u32);
     }
 
     pub fn submit_proof(
@@ -61,8 +61,8 @@ impl ZkPrivacyDex {
         env.storage().persistent().set(&DataKey::Trade(trade_hash.clone()), &record);
         env.storage().persistent().set(&DataKey::Nullifier(nullifier), &true);
 
-        let count: u32 = env.storage().instance().get(&DataKey::TradeCount).unwrap_or(0);
-        env.storage().instance().set(&DataKey::TradeCount, &(count + 1));
+        let count: u32 = env.storage().persistent().get(&DataKey::TradeCount).unwrap_or(0u32);
+        env.storage().persistent().set(&DataKey::TradeCount, &(count + 1));
 
         trade_hash
     }
@@ -86,6 +86,6 @@ impl ZkPrivacyDex {
     }
 
     pub fn trade_count(env: Env) -> u32 {
-        env.storage().instance().get(&DataKey::TradeCount).unwrap_or(0)
+        env.storage().persistent().get(&DataKey::TradeCount).unwrap_or(0u32)
     }
 }
