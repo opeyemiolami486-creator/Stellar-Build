@@ -1,10 +1,29 @@
 // Frontend API client — all calls go to the ZK Shield DEX backend
 
-const BASE =
-  process.env.NEXT_PUBLIC_BACKEND_URL?.trim() ||
-  (typeof window !== "undefined" && window.location.hostname !== "localhost"
-    ? ""
-    : "http://localhost:3001");
+function getBaseUrl(): string {
+  const configured = process.env.NEXT_PUBLIC_BACKEND_URL?.trim();
+  if (configured) return configured.replace(/\/$/, "");
+
+  if (typeof window !== "undefined") {
+    const hostname = window.location.hostname;
+    if (hostname === "localhost" || hostname === "127.0.0.1" || hostname.endsWith(".localhost")) {
+      return "http://localhost:3001";
+    }
+
+    // If the frontend is served from the same origin as the backend (for example behind a reverse proxy),
+    // use a relative URL so the browser does not need a hard-coded backend host.
+    return "";
+  }
+
+  return "http://localhost:3001";
+}
+
+const BASE = getBaseUrl();
+
+function getApiUrl(path: string): string {
+  if (!BASE) return `/api${path}`;
+  return `${BASE}/api${path}`;
+}
 
 export interface WalletInfo {
   address: string;
@@ -65,7 +84,7 @@ export interface TransferSubmitResponse {
 }
 
 async function post<T>(path: string, body: object): Promise<T> {
-  const res = await fetch(`${BASE}/api${path}`, {
+  const res = await fetch(getApiUrl(path), {
     method:  "POST",
     headers: { "Content-Type": "application/json" },
     body:    JSON.stringify(body),
@@ -80,20 +99,20 @@ async function post<T>(path: string, body: object): Promise<T> {
 export const api = {
   // ── Wallet ────────────────────────────────────────────────────────────────
   getWallet: async (address: string): Promise<WalletInfo> => {
-    const res = await fetch(`${BASE}/api/wallet/${address}`);
+    const res = await fetch(getApiUrl(`/wallet/${address}`));
     if (!res.ok) throw new Error("Wallet not found on Testnet");
     return res.json();
   },
 
   getWalletProviders: async (): Promise<WalletProviderInfo[]> => {
-    const res = await fetch(`${BASE}/api/wallet/providers`);
+    const res = await fetch(getApiUrl("/wallet/providers"));
     if (!res.ok) throw new Error("Could not load wallet providers");
     const data = await res.json();
     return data.providers ?? [];
   },
 
   verifyWallet: async (address: string, provider?: string) => {
-    const res = await fetch(`${BASE}/api/wallet/verify`, {
+    const res = await fetch(getApiUrl("/wallet/verify"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ address, provider }),
@@ -106,7 +125,7 @@ export const api = {
   },
 
   health: async () => {
-    const res = await fetch(`${BASE}/health`);
+    const res = await fetch(`${BASE ? `${BASE}/health` : "/health"}`);
     return res.json();
   },
 
