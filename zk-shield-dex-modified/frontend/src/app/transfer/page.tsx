@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { StrKey } from "@stellar/stellar-sdk";
 import { api, type ProofResponse, type TransferSubmitResponse } from "@/lib/api";
 import { buildTransferTransactionXdr, signAndSubmitTransactionXdr } from "@/lib/stellar";
 
@@ -89,7 +90,8 @@ export default function TransferPage() {
   }
 
   function isValidStellarAddress(addr: string) {
-    return /^G[A-Z0-9]{55}$/.test(addr.trim());
+    const normalized = addr.trim();
+    return Boolean(normalized && StrKey.isValidEd25519PublicKey(normalized));
   }
 
   async function handleSubmit() {

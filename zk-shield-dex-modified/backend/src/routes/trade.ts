@@ -30,6 +30,7 @@ import {
 import { generateZkProof, verifyProofLocally } from "../services/zkProofService";
 import { Keypair } from "@stellar/stellar-sdk";
 import * as nodeCrypto from "crypto";
+import { isValidStellarAddress } from "../utils/stellarAddress";
 
 export const tradeRouter = Router();
 
@@ -75,8 +76,6 @@ const supportedWalletProviders = [
     supportsMobile: true,
   },
 ];
-
-const stellarAddressRegex = /^G[1-9A-HJ-NP-Za-km-z]{55}$/;
 
 // ── Relayer keypair ───────────────────────────────────────────────────────────
 
@@ -503,7 +502,7 @@ tradeRouter.post("/wallet/verify", (req: Request, res: Response) => {
       return res.status(400).json({ error: "Wallet address is required" });
     }
 
-    if (!stellarAddressRegex.test(normalizedAddress)) {
+    if (!isValidStellarAddress(normalizedAddress)) {
       return res.status(400).json({ error: "Invalid Stellar public key format" });
     }
 
