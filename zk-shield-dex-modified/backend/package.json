@@ -8,7 +8,7 @@
     "start": "node dist/index.js",
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "test": "jest",
-    "compile-circuit": "cd ../circuit && nargo compile && mkdir -p ../backend/circuit && cp target/trade_proof.json ../backend/circuit/trade_proof.json && echo '✅ Circuit compiled and copied'"
+    "compile-circuit": "cd ../circuit && (command -v noirup >/dev/null 2>&1 && noirup -v 0.31.0 || true) && nargo compile && mkdir -p ../backend/circuit && cp target/trade_proof.json ../backend/circuit/trade_proof.json && echo '✅ Circuit compiled and copied'"
   },
   "dependencies": {
     "@noir-lang/backend_barretenberg": "^0.31.0",

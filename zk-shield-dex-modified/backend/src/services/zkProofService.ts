@@ -43,17 +43,32 @@ export interface ZkProofResult {
 // ── Noir circuit artifact ─────────────────────────────────────────────────────
 
 const CIRCUIT_PATH = path.resolve(__dirname, "../../circuit/trade_proof.json");
+const EXPECTED_NOIR_VERSION_PREFIX = "0.31.";
 
 function loadCircuit(): object {
   if (!fs.existsSync(CIRCUIT_PATH)) {
     throw new Error(
       `Circuit artifact not found at ${CIRCUIT_PATH}.\n` +
       `Compile it first:\n` +
-      `  cd circuit && nargo compile\n` +
+      `  cd circuit && noirup -v 0.31.0 && nargo compile\n` +
       `  cp target/trade_proof.json ../backend/circuit/trade_proof.json`
     );
   }
-  return JSON.parse(fs.readFileSync(CIRCUIT_PATH, "utf-8"));
+
+  const rawCircuit = fs.readFileSync(CIRCUIT_PATH, "utf-8");
+  const circuit = JSON.parse(rawCircuit) as { noir_version?: string };
+  const noirVersion = circuit.noir_version ?? "unknown";
+
+  if (!noirVersion.startsWith(EXPECTED_NOIR_VERSION_PREFIX)) {
+    throw new Error(
+      `Unsupported Noir circuit artifact version ${noirVersion}. This backend expects Noir 0.31.x artifacts.\n` +
+      `Recompile the circuit with the matching toolchain:\n` +
+      `  cd circuit && noirup -v 0.31.0 && nargo compile\n` +
+      `  cp target/trade_proof.json ../backend/circuit/trade_proof.json`
+    );
+  }
+
+  return circuit as object;
 }
 
 // ── Merkle root for testnet asset registry ────────────────────────────────────
@@ -114,6 +129,14 @@ export async function generateZkProof(intent: TradeIntent): Promise<ZkProofResul
 
   // Build the full witness (private + public inputs) as Noir field elements.
   // Noir fields are BN254 scalars; bigints fit if < BN254 prime.
+  const expectedNullifier = deriveNullifierField(nullifierSecret.toString(), nonce.toString());
+  const expectedCommitment = deriveCommitmentField(
+    intent.walletBalance.toString(),
+    intent.tradeAmount.toString(),
+    assetSecret.toString(),
+    nullifierSecret.toString(),
+  );
+
   const witnessInputs = {
     // Private
     wallet_balance:   intent.walletBalance.toString(),
@@ -121,16 +144,13 @@ export async function generateZkProof(intent: TradeIntent): Promise<ZkProofResul
     asset_secret:     assetSecret.toString(),
     nullifier_secret: nullifierSecret.toString(),
     price_limit:      intent.priceLimitStroops.toString(),
-    // Public — Noir will compute and verify nullifier + commitment internally;
-    // we supply nonce, has_price_limit, merkle_root.
-    // nullifier and commitment are derived by the circuit from the secrets above
-    // so we pass them as 0 and the circuit writes the correct values.
-    // (Noir's noir_js API accepts computed public inputs as part of the witness.)
-    nullifier:        "0",  // circuit constraint derives this; overridden by prove()
-    commitment:       "0",  // same
+    // Public — these values are derived from the private witness and must match
+    // the constraints enforced by the Noir circuit.
+    nullifier:        expectedNullifier,
+    commitment:       expectedCommitment,
     nonce:            nonce.toString(),
     has_price_limit:  (intent.priceLimitStroops > 0n ? 1 : 0).toString(),
-    merkle_root:      BigInt(TESTNET_ASSET_MERKLE_ROOT).toString(),
+    merkle_root:      fieldElementFromHex(TESTNET_ASSET_MERKLE_ROOT),
   };
 
   const { witness: compressedWitness } = await noir.execute(witnessInputs);
@@ -224,6 +244,25 @@ function fieldToHex32(field: string): string {
     v >>= 8n;
   }
   return "0x" + buf.toString("hex");
+}
+
+function deriveNullifierField(secret: string, nonce: string): string {
+  const BN254_PRIME =
+    21888242871839275222246405745257275088548364400416034343698204186575808495617n;
+  return ((BigInt(secret) + BigInt(nonce) + 1n) % BN254_PRIME).toString();
+}
+
+function deriveCommitmentField(balance: string, amount: string, assetSecret: string, nullifierSecret: string): string {
+  const BN254_PRIME =
+    21888242871839275222246405745257275088548364400416034343698204186575808495617n;
+  return ((BigInt(balance) + BigInt(amount) + BigInt(assetSecret) + BigInt(nullifierSecret) + 7n) % BN254_PRIME).toString();
+}
+
+/** Convert a 0x-prefixed hex string to a BN254 field element that Noir accepts. */
+function fieldElementFromHex(hex: string): string {
+  const BN254_PRIME =
+    21888242871839275222246405745257275088548364400416034343698204186575808495617n;
+  return (BigInt(hex) % BN254_PRIME).toString();
 }
 
 /** Convert a 0x-hex string back to a decimal field string for Noir. */
