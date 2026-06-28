@@ -144,8 +144,8 @@ export async function submitProofToSoroban(
   const relayerAccount = await soroban.getAccount(relayerKeypair.publicKey());
   const contract = new Contract(contractId);
 
-  const nullifierBuf  = Buffer.from(publicInputs.nullifier.replace("0x", ""), "hex");
-  const commitmentBuf = Buffer.from(publicInputs.commitment.replace("0x", ""), "hex");
+  const nullifierBuf  = Buffer.from(publicInputs.nullifier.replace("0x", "").padStart(64, "0"), "hex");
+  const commitmentBuf = Buffer.from(publicInputs.commitment.replace("0x", "").padStart(64, "0"), "hex");
 
   const submitterArg  = new Address(relayerKeypair.publicKey()).toScVal();
   const nullifierArg  = xdr.ScVal.scvBytes(nullifierBuf);
