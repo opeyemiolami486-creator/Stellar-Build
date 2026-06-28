@@ -14,11 +14,11 @@ import {
   Operation,
   Asset,
   BASE_FEE,
-  SorobanRpc,
   Contract,
   Address,
   xdr,
   Memo,
+  rpc as SorobanRpc,
 } from "@stellar/stellar-sdk";
 
 const HORIZON_URL  = "https://horizon-testnet.stellar.org";
