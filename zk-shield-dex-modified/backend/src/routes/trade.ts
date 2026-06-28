@@ -217,7 +217,7 @@ tradeRouter.post("/generate-proof", async (req: Request, res: Response) => {
 // POST /submit-proof
 tradeRouter.post("/submit-proof", async (req: Request, res: Response) => {
   try {
-    const { proofId } = req.body;
+    const { proofId, skipExecution = false } = req.body;
 
     const stored = proofStore.get(proofId);
     if (!stored) return res.status(404).json({ error: "Proof not found or expired" });
@@ -240,6 +240,17 @@ tradeRouter.post("/submit-proof", async (req: Request, res: Response) => {
       }
     );
     console.log(`✅ Soroban verified. Trade hash: ${sorobanResult.tradeHash}`);
+
+    if (skipExecution) {
+      proofStore.delete(proofId);
+      intentStore.delete(stored.intentId);
+      return res.json({
+        status:             "verified",
+        tradeHash:          sorobanResult.tradeHash,
+        verificationTxHash: sorobanResult.txHash,
+        message:            "Proof verified on Soroban. Settlement should be signed and submitted by the wallet.",
+      });
+    }
 
     // 2. Execute real Stellar DEX swap
     console.log(`💱 Executing Stellar DEX trade...`);
@@ -367,6 +378,7 @@ tradeRouter.post("/generate-transfer-proof", async (req: Request, res: Response)
 
     return res.json({
       proofId:          proof.proofId,
+      proofBytes:       proof.proofBytes,
       status:           "proof_ready",
       generationTimeMs: genTime,
       publicInputs: {
@@ -386,7 +398,7 @@ tradeRouter.post("/generate-transfer-proof", async (req: Request, res: Response)
 // POST /submit-transfer
 tradeRouter.post("/submit-transfer", async (req: Request, res: Response) => {
   try {
-    const { proofId } = req.body;
+    const { proofId, skipExecution = false } = req.body;
 
     const stored = proofStore.get(proofId);
     if (!stored || stored.type !== "transfer") {
@@ -411,6 +423,17 @@ tradeRouter.post("/submit-transfer", async (req: Request, res: Response) => {
       }
     );
     console.log(`✅ Soroban verified transfer. Hash: ${sorobanResult.tradeHash}`);
+
+    if (skipExecution) {
+      proofStore.delete(proofId);
+      transferStore.delete(stored.intentId);
+      return res.json({
+        status:             "verified",
+        transferHash:       sorobanResult.tradeHash,
+        verificationTxHash: sorobanResult.txHash,
+        message:            "Transfer proof verified on Soroban. Settlement should be signed and submitted by the wallet.",
+      });
+    }
 
     // 2. Execute real Stellar payment to recipient
     console.log(`💸 Executing Stellar payment to ${intent.recipient}...`);

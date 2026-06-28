@@ -11,7 +11,7 @@ const links = [
 ];
 
 export function NavBar() {
-  const path = usePathname();
+  const path = usePathname() ?? "/";
   const router = useRouter();
   const { address, connected, disconnect } = useWallet();
 

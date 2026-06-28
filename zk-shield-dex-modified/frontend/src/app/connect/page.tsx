@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { api, type WalletProviderInfo } from "@/lib/api";
 import { useWallet } from "@/lib/wallet";
+import { isConnected, requestAccess, getPublicKey } from "@stellar/freighter-api";
 
 const DEMO_WALLETS = [
   { label: "Demo Wallet A", address: "GAO3SJLUBA7RCO2DQKFL5XBEYX2SF5CXTJ75WS43VBNUW6THFCBBFVHS" },
@@ -113,7 +114,7 @@ export default function ConnectPage() {
     }
   }, [connectedAddress]);
 
-  async function handleConnect(addr?: string, providerId?: string) {
+  async function handleConnect(addr?: string, providerId?: string, network: string = "TESTNET") {
     const target = (addr ?? address).trim();
     if (!target) return;
 
@@ -124,7 +125,7 @@ export default function ConnectPage() {
       const verified = await api.verifyWallet(target, providerId);
       const info = await api.getWallet(verified.address);
       setWalletInfo(info);
-      connect(verified.address, providerId ?? verified.provider ?? null);
+      connect(verified.address, providerId ?? verified.provider ?? null, network);
       setAddress(verified.address);
       setStatus("success");
     } catch (e: any) {
@@ -138,6 +139,56 @@ export default function ConnectPage() {
     const returnUrl = `${currentOrigin}/connect?wallet=albedo_return`;
     const alledoUrl = `https://albedo.link/?callback=${encodeURIComponent(returnUrl)}&network=testnet`;
     window.location.href = alledoUrl;
+  }
+
+  async function tryFreighter() {
+    try {
+      setStatus("loading");
+      setError("");
+
+      const connectionResult = await isConnected();
+      if (!connectionResult) {
+        setError("Freighter not detected. Install it from freighter.app, then reload.");
+        setStatus("idle");
+        return null;
+      }
+
+      const accessResult = await requestAccess();
+      const access = typeof accessResult === "object" && accessResult !== null
+        ? accessResult as { error?: string; publicKey?: string; address?: string }
+        : null;
+      if (access?.error) {
+        setError("Freighter access denied: " + access.error);
+        setStatus("idle");
+        return null;
+      }
+
+      const keyResult = await getPublicKey();
+      const keyResponse = typeof keyResult === "object" && keyResult !== null
+        ? keyResult as { error?: string; publicKey?: string }
+        : null;
+      if (keyResponse?.error) {
+        setError("Could not get public key: " + keyResponse.error);
+        setStatus("idle");
+        return null;
+      }
+
+      if (typeof keyResult === "string" && keyResult.trim()) {
+        return keyResult.trim();
+      }
+
+      if (keyResult && typeof keyResult === "object" && typeof (keyResult as any).publicKey === "string") {
+        return (keyResult as any).publicKey;
+      }
+
+      setError("Could not get public key from Freighter.");
+      setStatus("idle");
+      return null;
+    } catch (e: any) {
+      setError(e?.message ?? "Freighter connection failed");
+      setStatus("idle");
+      return null;
+    }
   }
 
   async function tryInjectedWallet(providerId: string) {
@@ -197,6 +248,15 @@ export default function ConnectPage() {
         localStorage.setItem("zk_wallet_pending_provider", "albedo");
         connectAlbedo();
         return;
+      }
+
+      // For Freighter, use the v2 API flow, which requires requestAccess()
+      if (providerId === "freighter") {
+        const freighterAddress = await tryFreighter();
+        if (freighterAddress) {
+          await handleConnect(freighterAddress, providerId);
+          return;
+        }
       }
 
       // For other providers, try injection

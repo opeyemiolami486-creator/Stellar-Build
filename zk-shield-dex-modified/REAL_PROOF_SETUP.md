@@ -74,6 +74,8 @@ Add to `backend/.env`:
 RELAYER_SECRET_KEY=S...your-secret...
 ```
 
+Note: setting `RELAYER_SECRET_KEY` enables the backend relayer to submit execution transactions on behalf of users. If you prefer users to sign execution transactions from their own wallets (recommended for transparency), you can leave this unset — the frontend supports a proof-only verification flow followed by a wallet-signed execution using Freighter.
+
 ## Step 5 — Deploy the Soroban contract
 
 ```bash
@@ -89,6 +91,8 @@ CONTRACT_ID=C...your-contract-id...
 cd backend && npm run dev
 cd frontend && npm run dev
 ```
+
+To test wallet-signed settlement: open the frontend in a browser with the Freighter extension installed and perform a trade — after proof verification the browser will prompt Freighter to sign and submit the execution transaction.
 
 ---
 

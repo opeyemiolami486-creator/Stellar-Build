@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { api, type ProofResponse, type TransferSubmitResponse } from "@/lib/api";
+import { buildTransferTransactionXdr, signAndSubmitTransactionXdr } from "@/lib/stellar";
 
 type Step = "intent" | "proving" | "submitting" | "done" | "error";
 
@@ -138,10 +139,18 @@ export default function TransferPage() {
 
       setStep("submitting");
       updateStep(4, "running");
-      const transferResult = await api.submitTransfer(proof.proofId);
+      const proofResult = await api.submitTransfer(proof.proofId, true);
       updateStep(4, "done");
 
       updateStep(5, "running");
+      const txXdr = await buildTransferTransactionXdr(
+        walletAddress,
+        recipient.trim(),
+        asset,
+        amount,
+        useMemo && memo ? memo : undefined
+      );
+      const txResult = await signAndSubmitTransactionXdr(txXdr, walletAddress);
       updateStep(5, "done");
 
       // Build the receiver share token so they can decode transfer details
@@ -151,13 +160,24 @@ export default function TransferPage() {
         amount,
         asset,
         memo:             useMemo && memo ? memo : undefined,
-        executionTxHash:  transferResult.executionTxHash,
-        timestamp:        transferResult.timestamp,
+        executionTxHash:  txResult.hash,
+        timestamp:        new Date().toISOString(),
       });
       setReceiverToken(token);
 
-      localStorage.setItem("zk_last_transfer", JSON.stringify(transferResult));
-      setResult(transferResult);
+      const settledTransfer = {
+        status: "settled",
+        transferHash: proofResult.transferHash,
+        verificationTxHash: proofResult.verificationTxHash,
+        executionTxHash: txResult.hash,
+        ledger: Number(txResult.ledger ?? 0),
+        timestamp: new Date().toISOString(),
+        explorerUrl: `https://stellar.expert/explorer/testnet/tx/${txResult.hash}`,
+        message: "Private transfer executed from wallet and verified by proof.",
+      };
+
+      localStorage.setItem("zk_last_transfer", JSON.stringify(settledTransfer));
+      setResult(settledTransfer);
       setStep("done");
     } catch (e: any) {
       setStep("error");
@@ -225,18 +245,20 @@ export default function TransferPage() {
             <div key={label} className="flex items-center justify-between py-2 border-b border-slate-800 last:border-0">
               <span className="text-slate-500 text-xs">{label}</span>
               <span className="terminal text-slate-300 text-xs">
-                {val.slice(0, 14)}…{val.slice(-10)}
+                {val ? `${val.slice(0, 14)}…${val.slice(-10)}` : "-"}
               </span>
             </div>
           ))}
           <div className="flex items-center justify-between py-2">
             <span className="text-slate-500 text-xs">Ledger</span>
-            <span className="terminal text-slate-300 text-xs">{result.ledger.toLocaleString()}</span>
+            <span className="terminal text-slate-300 text-xs">
+              {typeof result.ledger === "number" ? result.ledger.toLocaleString() : "-"}
+            </span>
           </div>
           <div className="flex items-center justify-between py-2">
             <span className="text-slate-500 text-xs">Timestamp</span>
             <span className="terminal text-slate-300 text-xs">
-              {new Date(result.timestamp).toLocaleTimeString()}
+              {result.timestamp ? new Date(result.timestamp).toLocaleTimeString() : "-"}
             </span>
           </div>
         </div>

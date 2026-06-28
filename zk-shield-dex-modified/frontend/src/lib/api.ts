@@ -46,10 +46,10 @@ export interface SubmitResponse {
   status: string;
   tradeHash: string;
   verificationTxHash: string;
-  executionTxHash: string;
-  ledger: number;
-  timestamp: string;
-  explorerUrl: string;
+  executionTxHash?: string;
+  ledger?: number;
+  timestamp?: string;
+  explorerUrl?: string;
   message: string;
 }
 
@@ -57,10 +57,10 @@ export interface TransferSubmitResponse {
   status: string;
   transferHash: string;
   verificationTxHash: string;
-  executionTxHash: string;
-  ledger: number;
-  timestamp: string;
-  explorerUrl: string;
+  executionTxHash?: string;
+  ledger?: number;
+  timestamp?: string;
+  explorerUrl?: string;
   message: string;
 }
 
@@ -122,8 +122,11 @@ export const api = {
   generateProof: (intentId: string) =>
     post<ProofResponse>("/generate-proof", { intentId }),
 
-  submitProof: (proofId: string) =>
-    post<SubmitResponse>("/submit-proof", { proofId }),
+  settleProof: (proofId: string) =>
+    post<SubmitResponse>("/settle-proof", { proofId }),
+
+  submitProof: (proofId: string, skipExecution: boolean = false) =>
+    post<SubmitResponse>("/submit-proof", { proofId, skipExecution }),
 
   // ── Private transfer (payment to recipient) ───────────────────────────────
   createTransferIntent: (body: {
@@ -137,6 +140,6 @@ export const api = {
   generateTransferProof: (intentId: string) =>
     post<ProofResponse>("/generate-transfer-proof", { intentId }),
 
-  submitTransfer: (proofId: string) =>
-    post<TransferSubmitResponse>("/submit-transfer", { proofId }),
+  submitTransfer: (proofId: string, skipExecution: boolean = false) =>
+    post<TransferSubmitResponse>("/submit-transfer", { proofId, skipExecution }),
 };

@@ -27,8 +27,14 @@
 │  2. Validate: balance >= amount, amount > 0                     │
 │  3. Generate ZK circuit witness (private inputs)                │
 │  4. Run zkProofService → produce proof + public signals         │
-│  5. Submit proof to Soroban contract via RPC                    │
+│  5. Submit proof to Soroban contract via RPC (verification-only) │
+│     — backend verifies the ZK proof and records the public signals.│
 │  6. Execute DEX trade via Stellar path payment                  │
+│     — execution can be performed by the backend relayer (if     │
+│     configured) or by the user's wallet. The frontend supports   │
+│     a proof-only flow where the browser builds the execution     │
+│     transaction XDR and asks the user's Freighter wallet to sign │
+│     and submit it directly to Horizon.                          │
 └────────────────────────┬───────────────────────────────────────┘
                          │
           ┌──────────────┴──────────────┐
@@ -138,8 +144,15 @@ node -e "
 curl "https://friendbot.stellar.org/?addr=YOUR_PUBLIC_KEY"
 # Or visit: https://friendbot.stellar.org/?addr=YOUR_PUBLIC_KEY in your browser
 
-# Edit .env with your secret key
+# Edit .env with your secret key (optional)
 # RELAYER_SECRET_KEY=S...your_key
+
+# Notes:
+# - If you set `RELAYER_SECRET_KEY` and fund that account, the backend can also submit
+#   execution transactions on behalf of users (relayer mode).
+# - If you prefer the user to authorize and pay for the execution, leave `RELAYER_SECRET_KEY`
+#   unset and use the wallet-signed mode: the frontend will verify proofs server-side
+#   and then prompt the user's Freighter wallet to sign & submit the execution tx.
 
 npm install
 npm run dev
@@ -195,6 +208,14 @@ The UI shows each step:
 ● Generating UltraPlonk proof (Noir)   ← running
 ○ Running local proof verification
 ● Submitting proof → Soroban contract
+
+After the proof is verified, the app will perform settlement. By default the frontend uses a wallet-signed flow:
+
+- The backend verifies the proof and returns proof/verification metadata.
+- The browser builds the Stellar execution transaction XDR (payment or path-payment).
+- The user's Freighter wallet is prompted to sign and submit the transaction to Horizon.
+
+This preserves privacy while keeping the user in control of funds. If you have a funded relayer key in `backend/.env` the backend can instead submit the execution transaction for the user.
 ```
 
 ### 4. View Result
@@ -327,7 +348,7 @@ Similarly, Soroban contract verification is not simulated. If `CONTRACT_ID` is n
 ## Security Notes
 
 - **Testnet only** — no real funds at risk
-- The relayer submits transactions, so the user's wallet is not directly linked to on-chain trades
+- Settlement modes: relayer-submitted (requires a funded `RELAYER_SECRET_KEY`) or wallet-signed (user signs execution tx via Freighter). Wallet-signed mode keeps the user in control of funds.
 - Nullifiers prevent double-spending without revealing trade details
 - The Soroban contract verifies the real UltraPlonk proof on-chain — this is not simulated
 
