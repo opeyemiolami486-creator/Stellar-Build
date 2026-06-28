@@ -128,9 +128,21 @@ export default function ConnectPage() {
       connect(verified.address, providerId ?? verified.provider ?? null, network);
       setAddress(verified.address);
       setStatus("success");
+
+      // Advance to the trade page so the user can start a transfer or trade
+      try {
+        router.push("/trade");
+      } catch {
+        // ignore navigation errors
+      }
     } catch (e: any) {
       setStatus("error");
-      setError(e.message ?? "Could not load wallet from Stellar Testnet");
+      const msg = e?.message ?? "Could not load wallet from Stellar Testnet";
+      if (msg.includes("Failed to fetch")) {
+        setError("Network error: cannot reach backend. Ensure backend is running and CORS allows this origin.");
+      } else {
+        setError(msg);
+      }
     }
   }
 

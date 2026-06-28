@@ -22,10 +22,29 @@ const allowedOrigins = (process.env.FRONTEND_URL ?? "http://localhost:3000")
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes("*") || allowedOrigins.includes(origin)) {
+      // Allow server-to-server and same-origin requests
+      if (!origin) {
         callback(null, true);
         return;
       }
+
+      // Allow explicit origins from env or wildcard
+      if (allowedOrigins.includes("*") || allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      // During local development, allow any localhost origin regardless of port
+      try {
+        const url = new URL(origin);
+        if (url.hostname === "localhost" || url.hostname === "127.0.0.1") {
+          callback(null, true);
+          return;
+        }
+      } catch (e) {
+        // fall through to rejection
+      }
+
       callback(new Error(`Origin ${origin} not allowed by CORS`), false);
     },
     credentials: true,
