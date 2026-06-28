@@ -110,11 +110,11 @@ export async function generateZkProof(intent: TradeIntent): Promise<ZkProofResul
   const circuit = loadCircuit();
 
   const backend = new BarretenbergBackend(circuit, { threads: 4 });
-  const noir    = new Noir(circuit, backend);
+  const noir    = new Noir(circuit);
 
   // Build the full witness (private + public inputs) as Noir field elements.
   // Noir fields are BN254 scalars; bigints fit if < BN254 prime.
-  const witness = {
+  const witnessInputs = {
     // Private
     wallet_balance:   intent.walletBalance.toString(),
     trade_amount:     intent.tradeAmount.toString(),
@@ -133,9 +133,9 @@ export async function generateZkProof(intent: TradeIntent): Promise<ZkProofResul
     merkle_root:      BigInt(TESTNET_ASSET_MERKLE_ROOT).toString(),
   };
 
-  // generateProof returns { proof: Uint8Array, publicInputs: string[] }
+  const { witness: compressedWitness } = await noir.execute(witnessInputs);
   const { proof: proofBytes, publicInputs: rawPublicInputs } =
-    await noir.generateProof(witness);
+    await backend.generateProof(compressedWitness);
 
   await backend.destroy();
 
@@ -177,13 +177,11 @@ export async function verifyProofLocally(proof: ZkProofResult): Promise<boolean>
 
   // Full cryptographic verification using Barretenberg
   try {
-    let Noir: any, BarretenbergBackend: any;
-    ({ Noir } = await import("@noir-lang/noir_js"));
+    let BarretenbergBackend: any;
     ({ BarretenbergBackend } = await import("@noir-lang/backend_barretenberg"));
 
     const circuit  = loadCircuit();
     const backend  = new BarretenbergBackend(circuit, { threads: 4 });
-    const noir     = new Noir(circuit, backend);
 
     const proofBytes = Buffer.from(proof.proofBytes.replace("0x", ""), "hex");
 
@@ -195,7 +193,7 @@ export async function verifyProofLocally(proof: ZkProofResult): Promise<boolean>
       fieldFromHex32(proof.publicInputs.merkleRoot),
     ];
 
-    const valid = await noir.verifyProof({ proof: proofBytes, publicInputs });
+    const valid = await backend.verifyProof({ proof: proofBytes, publicInputs });
     await backend.destroy();
     return valid;
   } catch (err) {
