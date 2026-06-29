@@ -294,7 +294,7 @@ export async function executeStellarTrade(
     .setTimeout(300)
     .build();
 
-  console.log("[executeStellarTrade] tx operations:", tx.operations.map((op) => op.type));
+  console.log("[executeStellarTrade] tx operations count:", tx.operations.length);
   console.log("[executeStellarTrade] tx XDR before signing:", tx.toXDR());
 
   tx.sign(relayerKeypair);
@@ -357,7 +357,7 @@ export async function executeStellarTransfer(
     builder.addMemo(Memo.hash(memoBuf.toString("hex").padEnd(64, "0")));
   }
 
-  console.log("[executeStellarTransfer] tx operations:", builder.operations.map((op) => op.type));
+  console.log("[executeStellarTransfer] tx operations count:", builder.operations.length);
   const tx = builder.setTimeout(300).build();
   console.log("[executeStellarTransfer] tx XDR before signing:", tx.toXDR());
 
