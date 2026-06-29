@@ -75,6 +75,20 @@ function serializeForLog(value: unknown): string {
   }
 }
 
+function normalizeStellarAddress(address: string, label = "address"): string {
+  const trimmed = (address ?? "").trim();
+
+  if (!trimmed) {
+    throw new Error(`${label} is required`);
+  }
+
+  if (!trimmed.startsWith("G")) {
+    throw new Error(`${label} must be a valid Stellar public key starting with 'G'`);
+  }
+
+  return trimmed;
+}
+
 export async function getWalletInfo(address: string): Promise<WalletInfo> {
   try {
     const account = await horizon.loadAccount(address);
@@ -179,7 +193,7 @@ export async function submitProofToSoroban(
         nonceArg
       )
     )
-    .setTimeout(30)
+    .setTimeout(300)
     .build();
 
   const sim = await soroban.simulateTransaction(tx);
@@ -256,6 +270,7 @@ export async function executeStellarTrade(
 
   const srcAsset  = fromAsset === "XLM" ? Asset.native() : TESTNET_USDC!;
   const destAsset = toAsset   === "XLM" ? Asset.native() : TESTNET_USDC!;
+  const normalizedDestinationAddress = normalizeStellarAddress(destinationAddress, "destinationAddress");
 
   const tx = new TransactionBuilder(relayerAccount, {
     fee: BASE_FEE,
@@ -265,13 +280,13 @@ export async function executeStellarTrade(
       Operation.pathPaymentStrictSend({
         sendAsset:   srcAsset,
         sendAmount:  amountXlm,
-        destination: destinationAddress,
+        destination: normalizedDestinationAddress,
         destAsset:   destAsset,
         destMin:     "0.0000001",
         path:        [],
       })
     )
-    .setTimeout(30)
+    .setTimeout(300)
     .build();
 
   tx.sign(relayerKeypair);
@@ -311,13 +326,14 @@ export async function executeStellarTransfer(
   }
 
   const assetObj = asset === "XLM" ? Asset.native() : TESTNET_USDC!;
+  const normalizedDestinationAddress = normalizeStellarAddress(destinationAddress, "destinationAddress");
 
   const builder = new TransactionBuilder(relayerAccount, {
     fee: BASE_FEE,
     networkPassphrase: NETWORK_PASSPHRASE,
   }).addOperation(
     Operation.payment({
-      destination: destinationAddress,
+      destination: normalizedDestinationAddress,
       asset:       assetObj,
       amount:      amount,
     })
@@ -329,7 +345,7 @@ export async function executeStellarTransfer(
     builder.addMemo(Memo.hash(memoBuf.toString("hex").padEnd(64, "0")));
   }
 
-  const tx = builder.setTimeout(30).build();
+  const tx = builder.setTimeout(300).build();
   tx.sign(relayerKeypair);
 
   const result = await horizon.submitTransaction(tx);
