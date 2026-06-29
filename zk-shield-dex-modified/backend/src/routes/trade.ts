@@ -289,28 +289,45 @@ tradeRouter.post("/submit-proof", async (req: Request, res: Response) => {
 tradeRouter.post("/create-transfer-intent", async (req: Request, res: Response) => {
   try {
     const { walletAddress, recipient, asset, amount, memo } = req.body;
+    const normalizedWalletAddress = walletAddress?.trim();
+    const normalizedRecipient = recipient?.trim();
+    const normalizedAsset = asset?.trim();
+    const normalizedAmount = amount?.toString().trim();
 
-    if (!walletAddress || !recipient || !asset || !amount) {
+    console.log(
+      `[create-transfer-intent] walletAddress=${normalizedWalletAddress} recipient=${normalizedRecipient} asset=${normalizedAsset} amount=${normalizedAmount}`
+    );
+
+    if (!normalizedWalletAddress || !normalizedRecipient || !normalizedAsset || !normalizedAmount) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
+    if (!isValidStellarAddress(normalizedWalletAddress)) {
+      return res.status(400).json({ error: "Sender wallet address is invalid" });
+    }
+    if (!isValidStellarAddress(normalizedRecipient)) {
+      return res.status(400).json({ error: "Recipient must be a valid Stellar public key" });
+    }
+
     // Validate recipient exists on-chain
-    let recipientInfo;
-    try {
-      recipientInfo = await getWalletInfo(recipient);
-    } catch {
+    const recipientInfo = await getWalletInfo(normalizedRecipient);
+    if (!recipientInfo.exists) {
       return res.status(400).json({ error: "Recipient address not found on Stellar Testnet" });
     }
 
-    if (walletAddress === recipient) {
+    if (normalizedWalletAddress === normalizedRecipient) {
       return res.status(400).json({ error: "Cannot transfer to your own wallet" });
     }
 
-    // Check sender balance
-    const walletInfo        = await getWalletInfo(walletAddress);
-    const amountStroops     = xlmToStroops(amount);
-    const relevantBalance   = asset === "USDC" ? walletInfo.usdcBalance : walletInfo.xlmBalance;
-    const balanceStroops    = xlmToStroops(relevantBalance);
+    // Check sender balance and account existence
+    const walletInfo = await getWalletInfo(normalizedWalletAddress);
+    if (!walletInfo.exists) {
+      return res.status(400).json({ error: "Sender wallet address is not funded or does not exist on Testnet" });
+    }
+
+    const amountStroops   = xlmToStroops(normalizedAmount);
+    const relevantBalance = normalizedAsset === "USDC" ? walletInfo.usdcBalance : walletInfo.xlmBalance;
+    const balanceStroops  = xlmToStroops(relevantBalance);
 
     if (amountStroops <= 0n) {
       return res.status(400).json({ error: "Amount must be > 0" });
@@ -322,14 +339,14 @@ tradeRouter.post("/create-transfer-intent", async (req: Request, res: Response) 
     const intentId = nodeCrypto.randomUUID();
 
     transferStore.set(intentId, {
-      walletAddress,
+      walletAddress: normalizedWalletAddress,
       walletBalance:  balanceStroops,
       tradeAmount:    amountStroops,  // reuse same ZK circuit for transfers
-      assetCode:      asset,
+      assetCode:      normalizedAsset,
       priceLimitStroops: 0n,
-      recipient,
-      asset,
-      amount,
+      recipient: normalizedRecipient,
+      asset: normalizedAsset,
+      amount: normalizedAmount,
       memo: memo ?? null,
       createdAt: Date.now(),
     });

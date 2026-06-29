@@ -18,6 +18,7 @@ import {
   Address,
   xdr,
   Memo,
+  StrKey,
   rpc as SorobanRpc,
 } from "@stellar/stellar-sdk";
 
@@ -82,7 +83,7 @@ function normalizeStellarAddress(address: string, label = "address"): string {
     throw new Error(`${label} is required`);
   }
 
-  if (!trimmed.startsWith("G")) {
+  if (!StrKey.isValidEd25519PublicKey(trimmed)) {
     throw new Error(`${label} must be a valid Stellar public key starting with 'G'`);
   }
 
@@ -272,6 +273,10 @@ export async function executeStellarTrade(
   const destAsset = toAsset   === "XLM" ? Asset.native() : TESTNET_USDC!;
   const normalizedDestinationAddress = normalizeStellarAddress(destinationAddress, "destinationAddress");
 
+  console.log(
+    `[executeStellarTrade] destination=${normalizedDestinationAddress} fromAsset=${fromAsset} toAsset=${toAsset} amount=${amountXlm}`
+  );
+
   const tx = new TransactionBuilder(relayerAccount, {
     fee: BASE_FEE,
     networkPassphrase: NETWORK_PASSPHRASE,
@@ -288,6 +293,9 @@ export async function executeStellarTrade(
     )
     .setTimeout(300)
     .build();
+
+  console.log("[executeStellarTrade] tx operations:", tx.operations.map((op) => op.type));
+  console.log("[executeStellarTrade] tx XDR before signing:", tx.toXDR());
 
   tx.sign(relayerKeypair);
 
@@ -328,6 +336,10 @@ export async function executeStellarTransfer(
   const assetObj = asset === "XLM" ? Asset.native() : TESTNET_USDC!;
   const normalizedDestinationAddress = normalizeStellarAddress(destinationAddress, "destinationAddress");
 
+  console.log(
+    `[executeStellarTransfer] destination=${normalizedDestinationAddress} asset=${asset} amount=${amount}`
+  );
+
   const builder = new TransactionBuilder(relayerAccount, {
     fee: BASE_FEE,
     networkPassphrase: NETWORK_PASSPHRASE,
@@ -345,7 +357,10 @@ export async function executeStellarTransfer(
     builder.addMemo(Memo.hash(memoBuf.toString("hex").padEnd(64, "0")));
   }
 
+  console.log("[executeStellarTransfer] tx operations:", builder.operations.map((op) => op.type));
   const tx = builder.setTimeout(300).build();
+  console.log("[executeStellarTransfer] tx XDR before signing:", tx.toXDR());
+
   tx.sign(relayerKeypair);
 
   const result = await horizon.submitTransaction(tx);

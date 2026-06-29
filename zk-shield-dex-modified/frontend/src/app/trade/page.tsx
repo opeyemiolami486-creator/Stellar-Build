@@ -2,7 +2,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { api, type ProofResponse } from "@/lib/api";
-import { buildTradeTransactionXdr, signAndSubmitTransactionXdr } from "@/lib/stellar";
 
 type Step = "intent" | "proving" | "submitting" | "done" | "error";
 
@@ -117,28 +116,18 @@ export default function TradePage() {
       updateStep(4, "done");
 
       setStep("submitting");
-      const proofResult = await api.submitProof(proof.proofId, true);
-      updateStep(4, "running");
-
-      const txXdr = await buildTradeTransactionXdr(
-        walletAddress,
-        lockedFromAsset,
-        lockedToAsset,
-        lockedAmount,
-        usePriceLimit && priceLimit ? priceLimit : undefined
-      );
-      const txResult = await signAndSubmitTransactionXdr(txXdr, walletAddress);
+      const proofResult = await api.submitProof(proof.proofId);
       updateStep(4, "done");
 
       localStorage.setItem("zk_last_trade", JSON.stringify({
         status: "settled",
         tradeHash: proofResult.tradeHash,
         verificationTxHash: proofResult.verificationTxHash,
-        executionTxHash: txResult.hash,
-        ledger: Number(txResult.ledger ?? 0),
-        timestamp: new Date().toISOString(),
-        explorerUrl: `https://stellar.expert/explorer/testnet/tx/${txResult.hash}`,
-        message: "Private trade executed from wallet and verified by proof.",
+        executionTxHash: proofResult.executionTxHash ?? "",
+        ledger: Number(proofResult.ledger ?? 0),
+        timestamp: proofResult.timestamp ?? new Date().toISOString(),
+        explorerUrl: proofResult.explorerUrl ?? `https://stellar.expert/explorer/testnet/tx/${proofResult.executionTxHash ?? ""}`,
+        message: proofResult.message ?? "Private trade settled by relayer and verified by proof.",
       }));
       router.push("/status");
     } catch (e: any) {

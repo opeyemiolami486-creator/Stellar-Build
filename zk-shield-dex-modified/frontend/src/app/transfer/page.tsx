@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { StrKey } from "@stellar/stellar-sdk";
 import { api, type ProofResponse, type TransferSubmitResponse } from "@/lib/api";
-import { buildTransferTransactionXdr, signAndSubmitTransactionXdr } from "@/lib/stellar";
 
 type Step = "intent" | "proving" | "submitting" | "done" | "error";
 
@@ -141,18 +140,10 @@ export default function TransferPage() {
 
       setStep("submitting");
       updateStep(4, "running");
-      const proofResult = await api.submitTransfer(proof.proofId, true);
+      const proofResult = await api.submitTransfer(proof.proofId);
       updateStep(4, "done");
 
       updateStep(5, "running");
-      const txXdr = await buildTransferTransactionXdr(
-        walletAddress,
-        recipient.trim(),
-        asset,
-        amount,
-        useMemo && memo ? memo : undefined
-      );
-      const txResult = await signAndSubmitTransactionXdr(txXdr, walletAddress);
       updateStep(5, "done");
 
       // Build the receiver share token so they can decode transfer details
@@ -162,8 +153,8 @@ export default function TransferPage() {
         amount,
         asset,
         memo:             useMemo && memo ? memo : undefined,
-        executionTxHash:  txResult.hash,
-        timestamp:        new Date().toISOString(),
+        executionTxHash:  proofResult.executionTxHash ?? "",
+        timestamp:        proofResult.timestamp ?? new Date().toISOString(),
       });
       setReceiverToken(token);
 
@@ -171,11 +162,11 @@ export default function TransferPage() {
         status: "settled",
         transferHash: proofResult.transferHash,
         verificationTxHash: proofResult.verificationTxHash,
-        executionTxHash: txResult.hash,
-        ledger: Number(txResult.ledger ?? 0),
-        timestamp: new Date().toISOString(),
-        explorerUrl: `https://stellar.expert/explorer/testnet/tx/${txResult.hash}`,
-        message: "Private transfer executed from wallet and verified by proof.",
+        executionTxHash: proofResult.executionTxHash ?? "",
+        ledger: Number(proofResult.ledger ?? 0),
+        timestamp: proofResult.timestamp ?? new Date().toISOString(),
+        explorerUrl: proofResult.explorerUrl ?? `https://stellar.expert/explorer/testnet/tx/${proofResult.executionTxHash ?? ""}`,
+        message: proofResult.message ?? "Private transfer verified and settled by relayer.",
       };
 
       localStorage.setItem("zk_last_transfer", JSON.stringify(settledTransfer));
